@@ -18,7 +18,7 @@ object Spark01RDDSerial {
 
   // 查询对象
   // 类的构造参数其实是类的属性
-  class Search(query: String) extends {
+  class Search(query: String) extends Serializable {
     def isMatch(s: String): Boolean = {
       s.contains(this.query)
     }
