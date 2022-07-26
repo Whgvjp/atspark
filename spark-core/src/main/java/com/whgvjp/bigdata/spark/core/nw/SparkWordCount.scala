@@ -12,7 +12,7 @@ object SparkWordCount {
     val lines: RDD[String] = context.textFile("datas")
     val words: RDD[String] = lines.flatMap(_.split(" "))
     val wordGroup: RDD[(String, Iterable[String])] = words.groupBy(word => word)
-    val wordToCount = wordGroup.map{
+    val wordToCount: RDD[(String, Int)] = wordGroup.map{
       case (word, list) => {
         (word, list.size)
       }
