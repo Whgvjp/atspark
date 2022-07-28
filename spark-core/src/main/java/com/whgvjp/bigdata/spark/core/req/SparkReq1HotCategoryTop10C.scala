@@ -1,7 +1,10 @@
 package com.whgvjp.bigdata.spark.core.req
 
 import org.apache.spark.rdd.RDD
+import org.apache.spark.util.AccumulatorV2
 import org.apache.spark.{SparkConf, SparkContext}
+
+import scala.collection.mutable
 
 object SparkReq1HotCategoryTop10C {
   def main(args: Array[String]): Unit = {
@@ -15,44 +18,113 @@ object SparkReq1HotCategoryTop10C {
     // Q: 存在大量的shuffle操作，（reduceByKey）
     // reduceByKey 聚合算子，spark本身会提供优化，缓存
 
-    val flatRDD: RDD[(String, (Int, Int, Int))] = actionRDD.flatMap(
+    val acc = new HotCategoryAccumulator
+    sc.register(acc, "hotCategory")
+
+    actionRDD.foreach(
       action => {
         val datas: Array[String] = action.split("_")
         if (datas(6) != "-1") {
           // 点击场合
-          List((datas(6), (1, 0, 0)))
+          acc.add((datas(6), "click"))
         } else if (datas(8) != "null") {
           // 下单场合
           val ids: Array[String] = datas(8).split(",")
-          ids.map(id => (id, (0, 1, 0)))
+          ids.foreach(
+            id => {
+              acc.add((id, "order"))
+            }
+          )
         } else if (datas(10) != "null") {
           // 支付场合
           val ids: Array[String] = datas(10).split(",")
-          ids.map(id => (id, (0, 0, 1)))
-        } else {
-          Nil
+          ids.foreach(
+            id => {
+              acc.add((id, "pay"))
+            }
+          )
         }
       }
     )
-    // 2.将数据转换结构
-    // 点击场合： （品类ID，（1，0，0））
-    // 下单场合： （品类ID，（0，1，0））
-    // 支付场合： （品类ID，（0，0，1））
-    val analysisRDD: RDD[(String, (Int, Int, Int))] = flatRDD.reduceByKey{
-      (t1, t2) => {
-        (t1._1 + t2._1, t1._2 + t2._2, t1._3 + t2._3)
+    val accVal: mutable.Map[String, HotCategory] = acc.value
+    val categories: mutable.Iterable[HotCategory] = accVal.map(_._2)
+
+    val sort = categories.toList.sortWith(
+      (left, right) => {
+        if (left.clickCnt > right.clickCnt) {
+          true
+        } else if (left.clickCnt == right.clickCnt) {
+          if (left.orderCnt > right.orderCnt) {
+            true
+          } else if (left.orderCnt == right.orderCnt) {
+            left.payCnt > right.payCnt
+          } else {
+            false
+          }
+        } else {
+          false
+        }
       }
-    }
-
-    // 3. 将相同的品类的ID数据进行分组聚合
-    //    （ 品类ID，（点击数量，下单数量，支付数量））
-
-    // 4. 将统计结果根据数量进行降序排列取前十名
-    val resultRDD: Array[(String, (Int, Int, Int))] = analysisRDD.sortBy(_._2, false).take(10)
-
+    )
     // 5.将结果采集到控制台打印出来
-    resultRDD.foreach(println)
+    sort.take(10).foreach(println)
 
     sc.stop()
   }
+
+  case class HotCategory(cid: String, var clickCnt: Int, var orderCnt: Int, var payCnt: Int)
+
+  /**
+   * 自定义累加器
+   * 1. 继承 AccumulatorV2 ，定义泛型
+   * IN:  (品类ID，行为类型)
+   * OUT: mutable.Map[String,HotCategory]
+   */
+  class HotCategoryAccumulator extends AccumulatorV2[(String, String), mutable.Map[String, HotCategory]] {
+    private val hcMap = mutable.Map[String, HotCategory]()
+
+    override def isZero: Boolean = {
+      hcMap.isEmpty
+    }
+
+    override def copy(): AccumulatorV2[(String, String), mutable.Map[String, HotCategory]] = {
+      new HotCategoryAccumulator
+    }
+
+    override def reset(): Unit = {
+      hcMap.clear()
+    }
+
+    override def add(v: (String, String)): Unit = {
+      val cid = v._1
+      val actionType = v._2
+      val category: HotCategory = hcMap.getOrElse(cid, HotCategory(cid, 0, 0, 0))
+      if (actionType == "click") {
+        category.clickCnt += 1
+      } else if (actionType == "order") {
+        category.orderCnt += 1
+      } else if (actionType == "pay") {
+        category.payCnt += 1
+      }
+      hcMap.update(cid, category)
+    }
+
+    override def merge(other: AccumulatorV2[(String, String), mutable.Map[String, HotCategory]]): Unit = {
+      val map1 = this.hcMap
+      val map2 = other.value
+
+      map2.foreach {
+        case (cid, hc) => {
+          val category = map1.getOrElse(cid, HotCategory(cid, 0, 0, 0))
+          category.clickCnt += hc.clickCnt
+          category.orderCnt += hc.orderCnt
+          category.payCnt += hc.payCnt
+          map1.update(cid, category)
+        }
+      }
+    }
+
+    override def value: mutable.Map[String, HotCategory] = hcMap
+  }
+
 }
