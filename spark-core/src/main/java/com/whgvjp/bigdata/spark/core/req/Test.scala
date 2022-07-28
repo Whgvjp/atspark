@@ -26,13 +26,16 @@ object Test {
         cids.map(id => (id, 1))
       }
     )
+    mapRDD.map(_.mkString(",")).collect().foreach(println)
     val orderCountRDD = flatRDD.reduceByKey(_ + _)
 //    orderCountRDD.collect().foreach(println)
 
-    val dataRDD1 = sc.makeRDD(List(1,2,3,4))
-    val dataRDD2 = sc.makeRDD(List(3,4,5,6))
-    val dataRDD = dataRDD1.zip(dataRDD2)
-    dataRDD.collect().foreach(println)
+    // 查看zip功能
+//    println("********************************************")
+//    val dataRDD1 = sc.makeRDD(List(1,2,3,4))
+//    val dataRDD2 = sc.makeRDD(List(3,4,5,6))
+//    val dataRDD = dataRDD1.zip(dataRDD2)
+//    dataRDD.collect().foreach(println)
 
     sc.stop()
   }

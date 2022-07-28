@@ -1,0 +1,31 @@
+
+// wordcount 读取Windows本地文件
+sc.textFile("file:///D:/tmp.txt").flatMap(_.split(" ")).map((_,1)).reduceByKey(_+_).collect().foreach(println)
+// 初始化RDD
+val rdd = sc.parallelize(Seq(1,2,3,4))
+val rdd: RDD[(String, Int)] = sc.parallelize(Seq(("a", 1), ("z", 2), ("g", 3)))
+val rdd: RDD[(String, Int)] = sc.parallelize(Seq(("a", 1), ("z", 2), ("g", 3), ("b", 4), ("j", 5), ("w", 6)),2)
+
+// cogroup 测试
+import org.apache.spark.rdd.RDD
+
+scala> val rdd1: RDD[(String, Int)] = sc.parallelize(Seq(("a", 1), ("z", 2), ("g", 3), ("b", 4), ("j", 5), ("w", 6)))
+rdd1: org.apache.spark.rdd.RDD[(String, Int)] = ParallelCollectionRDD[13] at parallelize at <console>:25
+
+scala> val rdd2: RDD[(String, Int)] = sc.parallelize(Seq(("a", 7), ("z", 8), ("g", 3), ("b", 5), ("j", 1), ("w", 3)))
+rdd2: org.apache.spark.rdd.RDD[(String, Int)] = ParallelCollectionRDD[14] at parallelize at <console>:25
+
+scala> val rdd3: RDD[(String, Int)] = sc.parallelize(Seq(("a", 3), ("z", 2), ("g", 7), ("b", 2), ("j", 1), ("w", 9)))
+rdd3: org.apache.spark.rdd.RDD[(String, Int)] = ParallelCollectionRDD[15] at parallelize at <console>:25
+
+scala> val coRDD = rdd1.cogroup(rdd2,rdd3)
+coRDD: org.apache.spark.rdd.RDD[(String, (Iterable[Int], Iterable[Int], Iterable[Int]))] = MapPartitionsRDD[17] at cogroup at <console>:30
+
+scala> coRDD.collect().foreach(println)
+(a,(CompactBuffer(1),CompactBuffer(7),CompactBuffer(3)))
+(b,(CompactBuffer(4),CompactBuffer(5),CompactBuffer(2)))
+(w,(CompactBuffer(6),CompactBuffer(3),CompactBuffer(9)))
+(g,(CompactBuffer(3),CompactBuffer(3),CompactBuffer(7)))
+(z,(CompactBuffer(2),CompactBuffer(8),CompactBuffer(2)))
+(j,(CompactBuffer(5),CompactBuffer(1),CompactBuffer(1)))
+
