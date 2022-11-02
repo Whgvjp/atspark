@@ -28,6 +28,7 @@ object Test {
     )
     mapRDD.map(_.mkString(",")).collect().foreach(println)
     val orderCountRDD = flatRDD.reduceByKey(_ + _)
+    orderCountRDD.foreach(println)
 //    orderCountRDD.collect().foreach(println)
 
     // 查看zip功能
