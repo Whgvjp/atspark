@@ -8,7 +8,7 @@ object Spark01RDDJoin {
     val sconf: SparkConf = new SparkConf().setMaster("local[*]").setAppName("rddTransform")
     val sc: SparkContext = new SparkContext(sconf)
 
-    val rdd1 = sc.parallelize(Seq(("a", 1), ("b", 2), ("c", 3),("a",5)))
+    val rdd1 = sc.parallelize(Seq(("a", 1), ("b", 2), ("c", 3),("a",5),("d","he")))
     val rdd2 = sc.parallelize(Seq(("a", 4), ("b", "whgvjp"), ("c", 6),("a","ks")))
 
     // 两个不同数据源的数据，相同key的value会连接在一起，形成元组
