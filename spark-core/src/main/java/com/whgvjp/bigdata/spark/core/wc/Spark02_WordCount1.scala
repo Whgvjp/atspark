@@ -11,7 +11,7 @@ object Spark02_WordCount1 {
         // Spark框架
         // TODO 建立和Spark框架的连接
         // JDBC : Connection
-        val sparConf = new SparkConf().setMaster("local").setAppName("WordCount")//.set("spark.ui.port", "8787")
+        val sparConf = new SparkConf().setMaster("local").setAppName("WordCount").set("spark.ui.port", "8787")
         val sc = new SparkContext(sparConf)
 
         // TODO 执行业务操作
