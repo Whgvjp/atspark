@@ -6,7 +6,7 @@ import org.apache.spark.{SparkConf, SparkContext}
 trait TApplication {
 
   def start(master:String="local[*]", app:String="Application")( op : => Unit): Unit ={
-    val sparConf = new SparkConf().setMaster(master).setAppName(app)
+    val sparConf = new SparkConf().setMaster(master).setAppName(app).set("spark.port.maxRetries","200")
     val sc = new SparkContext(sparConf)
     EnvUtil.put(sc)
 

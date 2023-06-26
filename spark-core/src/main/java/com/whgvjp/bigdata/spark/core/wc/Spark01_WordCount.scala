@@ -11,7 +11,7 @@ object Spark01_WordCount {
         // Spark框架
         // TODO 建立和Spark框架的连接
         // JDBC : Connection
-        val sparConf = new SparkConf().setMaster("local").setAppName("WordCount")
+        val sparConf = new SparkConf().setMaster("local").setAppName("WordCount").set("spark.port.maxRetries","200")
         val sc = new SparkContext(sparConf)
 
         // TODO 执行业务操作
