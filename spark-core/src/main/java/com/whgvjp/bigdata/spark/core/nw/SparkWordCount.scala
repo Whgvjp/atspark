@@ -20,8 +20,7 @@ object SparkWordCount {
     val array: Array[(String, Int)] = wordToCount.collect()
     array.foreach(println)
 
-    
-    
+
 
   }
 
