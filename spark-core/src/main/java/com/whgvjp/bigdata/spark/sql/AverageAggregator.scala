@@ -23,21 +23,17 @@
 //    val aggregator = new AverageAggregator
 //
 //    // 注册聚合器为 UDAF
-//    spark.udf register("averageUDF", functions.udaf(new AverageAggregator()))
+//    spark.udf.register("averageUDF", aggregator)
 //
 //    // 应用聚合器计算学生的平均分
-//    val result = data.select(aggregator.toColumn.alias("average_score"))
-//    //    val result = data.select("score")
-//
-//    // 应用聚合器计算学生的平均分
-//    //    val result = data.groupBy("name").agg(callUDF("averageUDF", $"score").as("average_score"))
+//    val result = data.groupBy("name").agg(callUDF("averageUDF", $"score").as("average_score"))
 //
 //    // 显示结果
 //    result.show()
+//
 //    // 停止SparkSession
 //    spark.stop()
 //  }
-//
 //}
 //
 //case class Score(name: String, score: Double)
