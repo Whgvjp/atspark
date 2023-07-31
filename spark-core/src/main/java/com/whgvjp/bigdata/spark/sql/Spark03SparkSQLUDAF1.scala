@@ -1,69 +1,56 @@
 //package com.atguigu.bigdata.spark.sql
+//import org.apache.spark.sql.{Encoder, Encoders, SparkSession}
+//import org.apache.spark.sql.expressions.Aggregator
 //
-//import org.apache.spark.SparkConf
-//import org.apache.spark.sql.expressions.{Aggregator, MutableAggregationBuffer, UserDefinedAggregateFunction}
-//import org.apache.spark.sql.types.{DataType, LongType, StructField, StructType}
-//import org.apache.spark.sql.{Encoder, Encoders, Row, SparkSession, functions}
-//
-// 这个代码的方法只有spark3适用
-//object Spark03SparkSQLUDAF1 {
-//
-//  def main(args: Array[String]): Unit = {
-//
-//    // TODO 创建SparkSQL的运行环境
-//    val sparkConf = new SparkConf().setMaster("local[*]").setAppName("sparkSQL")
-//    val spark = SparkSession.builder().config(sparkConf).getOrCreate()
-//
-//    val df = spark.read.json("datas/user.json")
-//    df.createOrReplaceTempView("user")
-//
-//    spark.udf.register("ageAvg", functions.udaf(new MyAvgUDAF()))
-//
-//    spark.sql("select ageAvg(age) from user").show
-//
-//
-//    // TODO 关闭环境
-//    spark.close()
+//case class Score(name: String, score: Double)
+//class AverageAggregator extends Aggregator[Score, (Double, Int), Double] {
+//  // 初始化缓冲区，设置初始值
+//  def zero: (Double, Int) = (0.0, 0)
+//  // 在分区内对值进行累加
+//  def reduce(buffer: (Double, Int), score: Score): (Double, Int) = {
+//    (buffer._1 + score.score, buffer._2 + 1)
 //  }
-//  /*
-//   自定义聚合函数类：计算年龄的平均值
-//   1. 继承org.apache.spark.sql.expressions.Aggregator, 定义泛型
-//       IN : 输入的数据类型 Long
-//       BUF : 缓冲区的数据类型 Buff
-//       OUT : 输出的数据类型 Long
-//   2. 重写方法(6)
-//   */
-//  case class Buff( var total:Long, var count:Long )
-//  class MyAvgUDAF extends Aggregator[Long, Buff, Long]{
-//    // z & zero : 初始值或零值
-//    // 缓冲区的初始化
-//    override def zero: Buff = {
-//      Buff(0L,0L)
-//    }
-//
-//    // 根据输入的数据更新缓冲区的数据
-//    override def reduce(buff: Buff, in: Long): Buff = {
-//      buff.total = buff.total + in
-//      buff.count = buff.count + 1
-//      buff
-//    }
-//
-//    // 合并缓冲区
-//    override def merge(buff1: Buff, buff2: Buff): Buff = {
-//      buff1.total = buff1.total + buff2.total
-//      buff1.count = buff1.count + buff2.count
-//      buff1
-//    }
-//
-//    //计算结果
-//    override def finish(buff: Buff): Long = {
-//      buff.total / buff.count
-//    }
-//
-//    // 缓冲区的编码操作
-//    override def bufferEncoder: Encoder[Buff] = Encoders.product
-//
-//    // 输出的编码操作
-//    override def outputEncoder: Encoder[Long] = Encoders.scalaLong
+//  // 在分区之间合并结果
+//  def merge(buffer1: (Double, Int), buffer2: (Double, Int)): (Double, Int) = {
+//    (buffer1._1 + buffer2._1, buffer1._2 + buffer2._2)
 //  }
+//  // 计算最终结果
+//  def finish(buffer: (Double, Int)): Double = {
+//    buffer._1 / buffer._2
+//  }
+//  // 定义缓冲区的编码
+//  def bufferEncoder: Encoder[(Double, Int)] = Encoders.tuple(Encoders.scalaDouble, Encoders.scalaInt)
+//  // 定义输出结果的编码
+//  def outputEncoder: Encoder[Double] = Encoders.scalaDouble
 //}
+//
+//object AverageAggregator {
+//  def main(args: Array[String]): Unit = {
+//    // 创建 SparkSession
+//    val spark = SparkSession.builder().appName("UDAF-TEST").master("local[*]").getOrCreate()
+//    import spark.implicits._
+//
+//    // 创建包含学生成绩的 DataFrame
+//    val data = Seq(
+//      Score("Alice", 90.0),
+//      Score("Bob", 85.0),
+//      Score("Charlie", 95.0),
+//      Score("Alice", 92.0),
+//      Score("Bob", 88.0),
+//      Score("Charlie", 96.0)
+//    ).toDS()
+//
+//    // 创建聚合器实例
+//    val aggregator = new AverageAggregator
+//
+//    // 应用聚合器计算学生的平均分
+//    val result = data.select(aggregator.toColumn.alias("average_score"))
+//
+//    // 显示结果
+//    result.show()
+//    // 停止SparkSession
+//    spark.stop()
+//  }
+//
+//}
+//
